@@ -92,36 +92,44 @@ class UCBAAgent(Agent):
         self.Q[action] += (reward - self.Q[action])/self.N[action]
 
 class GradientBanditAgent(Agent):
-    def __init__(self, bandits: Bandit, alpha : float) -> None:
+    def __init__(self, bandits: Bandit, alpha: float) -> None:
         super().__init__(bandits)
         self.alpha = alpha
+        self.Q = np.zeros(bandits.getN(), dtype=np.float64)  # Preferences
+        self.probs = np.ones(bandits.getN(), dtype=np.float64) / bandits.getN()  # Initial equal probability
+        self.average_reward = 0.0  # Average reward initialization
+        self.t = 0  # Time step counter
+
+    def action(self) -> int:
+        exp_Q = np.exp(self.Q - np.max(self.Q))
+        self.probs = exp_Q / np.sum(exp_Q)
+        return np.random.choice(np.arange(len(self.probs)), p=self.probs)
+
+    def update(self, choice: int, reward: int) -> None:
+        self.t += 1
+        self.average_reward += (reward - self.average_reward) / self.t
+        baseline = self.average_reward
+        one_hot = np.zeros_like(self.Q)
+        one_hot[choice] = 1
+        self.Q += self.alpha * (reward - baseline) * (one_hot - self.probs)
+
+class ThompsonSamplerAgent(Agent):
+    def __init__(self, bandits: Bandit, alpha=1, beta=0) -> None:
+        super().__init__(bandits)
         self.Q = np.zeros((bandits.getN), dtype=np.float64) # Q-values
         self.N = np.zeros((bandits.getN), dtype=np.int) # counts for each action
+        self.alpha = alpha
+        self.beta = beta
 
     # implement
     def action(self) -> int:
-        exp_Q = np.exp(self.Q - np.max(self.Q))
-        probs = exp_Q / np.sum(exp_Q)
-
-        return np.random.choice(np.arange(len(probs)), p=probs)
+        samples = np.random.normal(loc=self.Q, scale=self.alpha / (np.sqrt(self.N) + self.beta))
+        return np.argmax(samples)
 
     # implement
     def update(self, choice: int, reward: int) -> None:
         action = choice
         self.N[action] += 1
-        self.Q[action] += self.alpha * (reward - self.Q[action]) * (1 - self.probs[action])
-
-class ThompsonSamplerAgent(Agent):
-    def __init__(self, bandits: Bandit) -> None:
-        super().__init__(bandits)
-        # add any member variables you may require
-
-    # implement
-    def action(self) -> int:
-        pass
-
-    # implement
-    def update(self, choice: int, reward: int) -> None:
-        pass
+        self.Q[action] += (reward - self.Q[action]) / self.N[action]
 
 # Implement other subclasses if you want to try other strategies
