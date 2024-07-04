@@ -1,4 +1,5 @@
 from bandits import Bandit
+import numpy as np
 # Import libraries if you need them
 
 class Agent:
@@ -30,45 +31,65 @@ class Agent:
         return reward
 
 class GreedyAgent(Agent):
-    def __init__(self, bandits: Bandit, initialQ : float) -> None:
+    def __init__(self, bandits: Bandit) -> None:
         super().__init__(bandits)
-        # add any member variables you may require
+        self.Q = np.zeros((bandits.getN), dtype=np.float64) # Q-values
+        self.N = np.zeros((bandits.getN), dtype=np.int) # counts for each action
+
+        # Arrays to store Q-values, returns, and actions for each episode
+        # self.Qe = np.empty((n_episodes, bandits.getN), dtype=np.float64)
+        # self.returns = np.empty(n_episodes, dtype=np.float64)
+        # self.actions = np.empty(n_episodes, dtype=np.int)
+        # name = 'Greedy Agent'
         
     # implement
     def action(self) -> int:
-        pass
+        return np.argmax(self.Q)
 
     # implement
     def update(self, choice: int, reward: int) -> None:
-        pass
+        action=choice
+        self.N[action] += 1
+        self.Q[action] += (reward - self.Q[action])/self.N[action]
 
 class epsGreedyAgent(Agent):
     def __init__(self, bandits: Bandit, epsilon : float) -> None:
         super().__init__(bandits)
         self.epsilon = epsilon
-        # add any member variables you may require
+        self.Q = np.zeros((bandits.getN), dtype=np.float64) # Q-values
+        self.N = np.zeros((bandits.getN), dtype=np.int) # counts for each action
     
     # implement
     def action(self) -> int:
-        pass
+        if np.random.uniform() > self.epsilon:
+            return np.argmax(self.Q)
+        else:
+            return np.random.randint(len(self.Q))
 
     # implement
     def update(self, choice: int, reward: int) -> None:
-        pass
+        action =choice
+        self.N[action] += 1
+        self.Q[action] += (reward - self.Q[action])/self.N[action]
 
 class UCBAAgent(Agent):
     def __init__(self, bandits: Bandit, c: float) -> None:
         super().__init__(bandits)
         self.c = c
+        self.Q = np.zeros((bandits.getN), dtype=np.float64) # Q-values
+        self.N = np.zeros((bandits.getN), dtype=np.int) # counts for each action
         # add any member variables you may require
 
     # implement
-    def action(self) -> int:
-        pass
+    def action(self, e: int) -> int:
+        
+        return e if e < len(self.Q) else np.argmax(self.Q + self.c * np.sqrt(np.log(e)/self.n))
 
     # implement
     def update(self, choice: int, reward: int) -> None:
-        pass
+        action =choice
+        self.N[action] += 1
+        self.Q[action] += (reward - self.Q[action])/self.N[action]
 
 class GradientBanditAgent(Agent):
     def __init__(self, bandits: Bandit, alpha : float) -> None:
