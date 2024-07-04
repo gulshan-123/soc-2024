@@ -140,4 +140,32 @@ class ThompsonSamplerAgent(Agent):
         self.N[action] += 1
         self.Q[action] += (reward - self.Q[action]) / self.N[action]
 
-# Implement other subclasses if you want to try other strategies
+class exp_dec_epsGreedyAgent(Agent):
+    def __init__(self, bandits: Bandit, init_eps=1.0, min_epsilon=0.01, decay_ratio=0.1, n_episodes=1000) -> None:
+        super().__init__(bandits)
+        self.Q = np.zeros((bandits.getN()), dtype=np.float64) # Q-values
+        self.N = np.zeros((bandits.getN()), dtype=int) # counts for each action
+        self.init_eps=init_eps
+        self.min_epsilon=min_epsilon
+        self.decy_ratio=decay_ratio
+        self.n_episodes=n_episodes
+    def action(self, e) -> int:
+        n_episodes=self.n_episodes
+        decay_ratio=self.decy_ratio
+        init_epsilon=self.init_eps
+        min_epsilon=self.min_epsilon
+    
+        decay_episodes = int(n_episodes * decay_ratio)
+        rem_episodes = n_episodes - decay_episodes
+        epsilons = np.logspace(-2, 0, decay_episodes) * (init_epsilon - min_epsilon)
+        epsilons += min_epsilon
+        epsilons = np.pad(epsilons, (0, rem_episodes), 'edge')
+
+        if (np.random.uniform() > epsilons[e]):
+            return np.argmax(self.Q)
+        else:
+            return np.random.randint(len(self.Q))
+    def update(self, choice: int, reward: int) -> None:
+        action=choice
+        self.N[action] += 1
+        self.Q[action] = self.Q[action] + (reward - self.Q[action])/self.N[action]
