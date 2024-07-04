@@ -1,6 +1,6 @@
 from bandits import Bandit
 import numpy as np
-np.random.seed(123)
+np.random.seed(122)
 # Import libraries if you need them
 
 class Agent:
