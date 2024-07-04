@@ -1,5 +1,6 @@
 from bandits import Bandit
 import numpy as np
+np.random.seed(123)
 # Import libraries if you need them
 
 class Agent:
@@ -29,17 +30,19 @@ class Agent:
 
         self.update(choice,reward)
         return reward
+    def getQN(self):
+        return self.Q, self.N
 
 class GreedyAgent(Agent):
     def __init__(self, bandits: Bandit) -> None:
         super().__init__(bandits)
-        self.Q = np.zeros((bandits.getN), dtype=np.float64) # Q-values
-        self.N = np.zeros((bandits.getN), dtype=np.int) # counts for each action
+        self.Q = np.zeros((bandits.getN()), dtype=np.float64) # Q-values
+        self.N = np.zeros((bandits.getN()), dtype=int) # counts for each action
 
         # Arrays to store Q-values, returns, and actions for each episode
-        # self.Qe = np.empty((n_episodes, bandits.getN), dtype=np.float64)
+        # self.Qe = np.empty((n_episodes, bandits.getN()), dtype=np.float64)
         # self.returns = np.empty(n_episodes, dtype=np.float64)
-        # self.actions = np.empty(n_episodes, dtype=np.int)
+        # self.actions = np.empty(n_episodes, dtype=int)
         # name = 'Greedy Agent'
         
     # implement
@@ -51,13 +54,16 @@ class GreedyAgent(Agent):
         action=choice
         self.N[action] += 1
         self.Q[action] += (reward - self.Q[action])/self.N[action]
+    
+    def getQN(self):
+        return self.Q, self.N
 
 class epsGreedyAgent(Agent):
-    def __init__(self, bandits: Bandit, epsilon : float) -> None:
+    def __init__(self, bandits: Bandit, epsilon=0.01) -> None:
         super().__init__(bandits)
         self.epsilon = epsilon
-        self.Q = np.zeros((bandits.getN), dtype=np.float64) # Q-values
-        self.N = np.zeros((bandits.getN), dtype=np.int) # counts for each action
+        self.Q = np.zeros((bandits.getN()), dtype=np.float64) # Q-values
+        self.N = np.zeros((bandits.getN()), dtype=int) # counts for each action
     
     # implement
     def action(self) -> int:
@@ -73,11 +79,11 @@ class epsGreedyAgent(Agent):
         self.Q[action] += (reward - self.Q[action])/self.N[action]
 
 class UCBAAgent(Agent):
-    def __init__(self, bandits: Bandit, c: float) -> None:
+    def __init__(self, bandits: Bandit, c=2.0) -> None:
         super().__init__(bandits)
         self.c = c
-        self.Q = np.zeros((bandits.getN), dtype=np.float64) # Q-values
-        self.N = np.zeros((bandits.getN), dtype=np.int) # counts for each action
+        self.Q = np.zeros((bandits.getN()), dtype=np.float64) # Q-values
+        self.N = np.zeros((bandits.getN()), dtype=int) # counts for each action
         # add any member variables you may require
 
     # implement
@@ -92,10 +98,11 @@ class UCBAAgent(Agent):
         self.Q[action] += (reward - self.Q[action])/self.N[action]
 
 class GradientBanditAgent(Agent):
-    def __init__(self, bandits: Bandit, alpha: float) -> None:
+    def __init__(self, bandits: Bandit, alpha=0.01) -> None:
         super().__init__(bandits)
         self.alpha = alpha
         self.Q = np.zeros(bandits.getN(), dtype=np.float64)  # Preferences
+        self.N = np.zeros((bandits.getN()), dtype=int)
         self.probs = np.ones(bandits.getN(), dtype=np.float64) / bandits.getN()  # Initial equal probability
         self.average_reward = 0.0  # Average reward initialization
         self.t = 0  # Time step counter
@@ -112,12 +119,13 @@ class GradientBanditAgent(Agent):
         one_hot = np.zeros_like(self.Q)
         one_hot[choice] = 1
         self.Q += self.alpha * (reward - baseline) * (one_hot - self.probs)
+        self.N[choice] += 1
 
 class ThompsonSamplerAgent(Agent):
     def __init__(self, bandits: Bandit, alpha=1, beta=0) -> None:
         super().__init__(bandits)
-        self.Q = np.zeros((bandits.getN), dtype=np.float64) # Q-values
-        self.N = np.zeros((bandits.getN), dtype=np.int) # counts for each action
+        self.Q = np.zeros((bandits.getN()), dtype=np.float64) # Q-values
+        self.N = np.zeros((bandits.getN()), dtype=int) # counts for each action
         self.alpha = alpha
         self.beta = beta
 
