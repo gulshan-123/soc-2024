@@ -95,15 +95,21 @@ class GradientBanditAgent(Agent):
     def __init__(self, bandits: Bandit, alpha : float) -> None:
         super().__init__(bandits)
         self.alpha = alpha
-        # add any member variables you may require
+        self.Q = np.zeros((bandits.getN), dtype=np.float64) # Q-values
+        self.N = np.zeros((bandits.getN), dtype=np.int) # counts for each action
 
     # implement
     def action(self) -> int:
-        pass
+        exp_Q = np.exp(self.Q - np.max(self.Q))
+        probs = exp_Q / np.sum(exp_Q)
+
+        return np.random.choice(np.arange(len(probs)), p=probs)
 
     # implement
     def update(self, choice: int, reward: int) -> None:
-        pass
+        action = choice
+        self.N[action] += 1
+        self.Q[action] += self.alpha * (reward - self.Q[action]) * (1 - self.probs[action])
 
 class ThompsonSamplerAgent(Agent):
     def __init__(self, bandits: Bandit) -> None:
