@@ -89,7 +89,7 @@ class UCBAAgent(Agent):
     # implement
     def action(self, e: int) -> int:
         
-        return e if e < len(self.Q) else np.argmax(self.Q + self.c * np.sqrt(np.log(e)/self.n))
+        return e if e < len(self.Q) else np.argmax(self.Q + self.c * np.sqrt(np.log(e)/self.N))
 
     # implement
     def update(self, choice: int, reward: int) -> None:
