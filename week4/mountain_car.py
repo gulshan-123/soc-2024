@@ -1,6 +1,7 @@
 import gymnasium as gym
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 np.random.seed(85)
 '''
 The first task to work with a gym env is to initialise it using gym.make(name_of_env) and reset it using .reset() function. This resets the env to a starting position, with some noise in state. It returns a tuple of the initial state of environment and a dictionary containing info (Not important for the moment).
@@ -39,16 +40,14 @@ class QAgent:
         
         #Hyperparameters. Play around with these values!!
         
-        self.discrete_sizes = [40,40] # Represents how many parts you want to discretize your observation space in. First element represents parts for position of car, and second for velocity of car.
+        self.discrete_sizes = [1000,1000] # Represents how many parts you want to discretize your observation space in. First element represents parts for position of car, and second for velocity of car.
         self.alpha = 0.1 # As defined in update rule
         self.gamma = 0.99 # As defined in update rule
         
-        self.num_train_episodes = 40_000 #Number of episodes to train the model for
-        self.epsilon = 10 #Initial value for epsilon-greedy behavior
-        self.num_episodes_decay = 35_000 # Number of episodes to act epsilon-greedily for, after which epsilon becomes 0
-        self.epsilon_decay = self.epsilon / self.num_episodes_decay # Linear decay of epsilon, that is the amount to be decreased from epsilon after every episode termination
-        
-        self.visitedPos=np.zeros(self.discrete_sizes[0],dtype=bool)
+        self.num_train_episodes = 1_00_000 #Number of episodes to train the model for
+        self.epsilon = 1 #Initial value for epsilon-greedy behavior
+        self.num_episodes_decay = 95_000# Number of episodes to act epsilon-greedily for, after which epsilon becomes 0
+        self.epsilon_decay = 0.95 # Linear decay of epsilon, that is the amount to be decreased from epsilon after every episode termination
         '''
         Q-Table. We have provided one way to initialise it, and tried to keep it general, so you even try a different environment. You are adviced to think of other ways you could have initialised it.
         
@@ -57,8 +56,6 @@ class QAgent:
         * operator opens the array. So *[1,2] represents 1,2. Hence *self.discrete_sizes, self.actions represents 25, 25, 3 here
         '''
         self.q_table = np.zeros((*self.discrete_sizes, self.actions),dtype=float)
-        self.q_track=np.zeros((self.num_train_episodes,*self.discrete_sizes,self.actions))
-        self.meanRewards=np.zeros((self.num_train_episodes,))
         
     def get_state_index(self, state):
         '''
@@ -88,7 +85,6 @@ class QAgent:
             td_target=reward+self.gamma*(self.q_table[next_state1].max())
         td_error=td_target-self.q_table[state1,action]
         self.q_table[state1,action]+=self.alpha*td_error
-        self.visitedPos[state1[0]]=True
         self.state=next_state
     
     def get_action(self):    
@@ -113,7 +109,7 @@ class QAgent:
         
         self.state = next_state
         
-        return (terminated or truncated), reward # Represents whether we need to reset the environment
+        return (terminated or truncated) # Represents whether we need to reset the environment
     
     def agent_eval(self):
         '''Visualise the performance of agent'''
@@ -131,28 +127,28 @@ class QAgent:
             eval_state = next_state
         eval_env.close()
           
-    def train(self, eval_intervals):
+    def train(self, eval_intervals=None):
         '''Main function to train the agent'''
-        for episode in range(self.num_train_episodes):
+        for episode in tqdm(range(self.num_train_episodes)):
             done = False
-            rewardSum=0
-            count=0
             while not done:
-                done,reward = self.env_step()
-                rewardSum+=reward
-                count+=1
+                done= self.env_step()
             self.state = self.env.reset()[0] # Reset environment after end of episode
-            self.meanRewards[episode]=rewardSum/count
-            # self.epsilon = max(0, self.epsilon - self.epsilon_decay) #Update epsilon after every episode
+            self.epsilon = max(0.01, self.epsilon * self.epsilon_decay) #Update epsilon after every episode
             
-            if episode % eval_intervals == 0:
+            if (episode+1 % 10_000) == 0:
                 #Check performance of agent
                 self.agent_eval()
-                print(f'Episode: {episode}')
-            self.q_track[episode]=self.q_table
-        return self.q_table,self.q_track, self.meanRewards
+            if (episode+1 % 1000) == 0:
+                print(f'Episode: {episode+1}')
+        return self.q_table
         
 
 if __name__ == "__main__":
     agent = QAgent("MountainCar-v0")
-    q_table, q_track, meanRewards=agent.train(eval_intervals=1000) # Change the number to change frequency of evaluation
+    # q_table=agent.train() # Change the number to change frequency of evaluation
+    # np.save('q_table_1lakh',q_table)
+
+    q_table=np.load('q_table_1lakh.npy')
+    agent.q_table=q_table
+    agent.agent_eval()
