@@ -1,4 +1,5 @@
 grokking/
 *.pdf
+!resources/*.pdf
 demo*.*
 */__pycache__/*
